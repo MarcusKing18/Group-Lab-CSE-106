@@ -69,14 +69,22 @@ admin.add_view(ModelView(Students, db.session))
 
 db.create_all()
 db.session.commit()
+u1 = User(username="alcerpa", password="2023")
+u = User(username="kirpal", password="2022")
+db.session.add(u)
+db.session.add(u1)
+db.session.commit()
+s = Students(first_name = "Sabir", last_name = "Kirpal", user_id = u.id)
+db.session.add(s)
+db.session.commit()
+t = Teachers(first_name = "Al", last_name = "Cerpa", user_id = u1.id)
+db.session.add(t)
+db.session.commit()
+c = Classes(class_name= "CSE 106", timeslot = "10", size = 50, enrolled = 20, teacher_id = t.id)
+db.session.add(c)
+db.session.commit()
 
-# u = User(username="kirpal", password="2022")
-# db.session.add(u)
-# db.session.commit()
-# s = Students(first_name = "Sabir", last_name = "Kirpal", user_id = u.id)
 
-# db.session.add(s)
-# db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -114,6 +122,11 @@ def loadClasses():
     user = User.query.filter_by(id = current_user.id).first()
     stu = Students.query.filter(Students.user_id == user.id).first()
     print(stu.classes)
+    c = Classes.query.filter_by(class_name = "CSE 106").first()
 
+    stu.classes.append(c)
+
+    print(stu.classes)
+    db.session.commit()
 
 app.run()
