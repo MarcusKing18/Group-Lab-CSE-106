@@ -7,13 +7,10 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>WELCOME {{name}}!</h1>
-    <div>
-        <h3>Your Classes: </h3>
+    <h1>
         <div id="display">
             <table id="tabs" align="center">
                 {% block content %}
-
                 {% if classes %}
                     <th>Course Name</th>
                     <th>Teacher</th>
@@ -32,7 +29,8 @@
 
                 {% endif %}
             {% endblock content%}
+
         </div>
-    </div>
+    </h1>
 </body>
 </html>

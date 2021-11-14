@@ -21,40 +21,62 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///example.sqlite"
 admin = Admin(app, name='microblog', template_mode='bootstrap3')
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String, unique=True, nullable=False)
-    name = db.Column(db.String, unique=False, nullable = False)
-    password = db.Column(db.String, unique=False, nullable=False)
-    is_active = True
+    id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    username = db.Column(db.String, nullable=False)
+    password = db.Column(db.String, nullable=False)
 
-    def __init__(self, id):
-        self.id = id
+    def check_password(self, password):
+        return self.password == password
 
-    def check_password(self, inputPassword):
-        return inputPassword == self.password
-
-class Teachers(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, unique=False, nullable=False)
-    username = db.Column(db.String, unique=True, nullable=False)
-    password = db.Column(db.String, unique=False, nullable=False)
 
 class Classes(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    courseName = db.Column(db.String, unique=True, nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey(Teachers.id), nullable=False)
-    numEnrolled = db.Column(db.Integer, unique=False, nullable=False)
-    capacity = db.Column(db.Integer, unique=False, nullable=False)
-    time = db.Column(db.String, unique=False, nullable=False)
+    id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    class_name = db.Column(db.String, nullable=False)
+    timeslot = db.Column(db.String, nullable=False)
+    size = db.Column(db.Integer, nullable=False)
+    enrolled = db.Column(db.Integer, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    students = db.relationship('Students', secondary='enrollment')
+
+
+class Students(db.Model):
+    id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    first_name = db.Column(db.String, nullable=False)
+    last_name = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    classes = db.relationship('Classes', secondary='enrollment')
+
+
+class Teachers(db.Model):
+    id = db.Column(db.Integer, nullable=False, primary_key=True, autoincrement=True)
+    first_name = db.Column(db.String, nullable=False)
+    last_name = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('user.id'), nullable=False)
+    classes = db.relationship('Classes', backref=db.backref('classes', lazy=True))
+
+
+class Enrollment(db.Model):
+    class_id = db.Column('class_id', db.Integer, db.ForeignKey('classes.id'), primary_key=True)
+    student_id = db.Column('student_id', db.Integer, db.ForeignKey('students.id'), primary_key=True)
+    grade = db.Column('grade', db.String, nullable=False)
 
 
 
 admin.add_view(ModelView(User, db.session))
 admin.add_view(ModelView(Classes, db.session))
 admin.add_view(ModelView(Teachers, db.session))
+admin.add_view(ModelView(Students, db.session))
 
 db.create_all()
 db.session.commit()
+
+# u = User(username="kirpal", password="2022")
+# db.session.add(u)
+# db.session.commit()
+# s = Students(first_name = "Sabir", last_name = "Kirpal", user_id = u.id)
+
+# db.session.add(s)
+# db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -67,7 +89,7 @@ def load_user(user_id):
 @app.route("/", methods=["GET"])
 def landingPage():
     if(current_user.is_authenticated):
-        return render_template("dashboard.html")
+        return render_template("dashboard.html", name = current_user.username)
     else:
         return render_template("login.html")
 
@@ -77,17 +99,21 @@ def returningUser():
     if user is not None and user.check_password(request.json['password']):
         login_user(user)
         print("LOGGED IN USER WITH ID: " + str(user.id))
-        return render_template("dashboard.html")
+        return render_template("dashboard.html", name = current_user.username)
     else:
         return dict(msg = "FAILED")
 
 @app.route("/dashboard", methods = ["GET"])
 @login_required
 def loadDashboard():
-    return render_template("dashboard.html")
+    return render_template("dashboard.html", name = current_user.username)
 
-# @app.route("/browseclasses", method=["GET"])
-# def loadClasses():
+@app.route("/browseclasses/", methods=["GET"])
+@login_required
+def loadClasses():
+    user = User.query.filter_by(id = current_user.id).first()
+    stu = Students.query.filter(Students.user_id == user.id).first()
+    print(stu.classes)
 
 
 app.run()
